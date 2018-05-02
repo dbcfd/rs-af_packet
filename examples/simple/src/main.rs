@@ -20,4 +20,7 @@ fn main() {
             }
         });
     }
+    loop {
+        thread::sleep_ms(1000);
+    }
 }
