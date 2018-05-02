@@ -4,10 +4,13 @@ use std::ffi::CString;
 use std::io::{self, Error, ErrorKind};
 use std::mem;
 
-use libc::{bind, c_char, c_int, c_short, c_uint, c_ulong, c_void, getpid, getsockopt, if_nametoindex,
-           ioctl, mmap, poll, pollfd, setsockopt, sockaddr, sockaddr_ll, socket, socklen_t,
-           AF_PACKET, ETH_ALEN, ETH_P_ALL, ETH_P_IP, IFF_PROMISC, MAP_LOCKED, MAP_NORESERVE,
-           MAP_SHARED, PF_PACKET, POLLERR, POLLIN, PROT_READ, PROT_WRITE, SOCK_RAW, SOL_PACKET};
+use libc::{bind, c_char, c_int, c_short, c_uint, c_ulong, c_void, getpid, getsockopt,
+           if_nametoindex, ioctl, mmap, poll, pollfd, setsockopt, sockaddr, sockaddr_ll, socket,
+           socklen_t, AF_PACKET, ETH_ALEN, ETH_P_ALL, ETH_P_IP, IFF_PROMISC, MAP_LOCKED,
+           MAP_NORESERVE, MAP_SHARED, PF_PACKET, POLLERR, POLLIN, PROT_READ, PROT_WRITE, SOCK_RAW,
+           SOL_PACKET};
+
+//Used digits for these consts, if they were defined differently in C headers I have added that definition in the comments beside them
 
 const PACKET_RX_RING: c_int = 5;
 const PACKET_STATISTICS: c_int = 6;
@@ -38,7 +41,7 @@ const SIOCSIFFLAGS: c_ulong = 35092; //0x00008914;
 const IFNAMESIZE: usize = 16;
 const IFREQUNIONSIZE: usize = 24;
 
-const TP_FT_REQ_FILL_RXHASH: c_uint = 0x1;
+const TP_FT_REQ_FILL_RXHASH: c_uint = 1; //0x1;
 
 const TP_BLK_STATUS_OFFSET: usize = 8;
 
