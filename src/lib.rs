@@ -197,19 +197,15 @@ impl<'a> Block<'a> {
         let mut next_offset = 48;
 
         let count = self.block_desc.hdr.num_pkts;
-
-        println!("{} PACKETS IN BLOCK", count);
-
         for x in 0..count {
             let this_offset = next_offset;
             let mut tpacket3_hdr = get_tpacket3_hdr(&self.raw_data[next_offset..]);
             if x < count - 1 {
-                next_offset = tpacket3_hdr.tp_next_offset as usize;
+                next_offset = this_offset + tpacket3_hdr.tp_next_offset as usize;
             } else {
                 next_offset = self.raw_data.len();
                 tpacket3_hdr.tp_next_offset = 0;
             }
-            println!("{}, {}, {:?}", this_offset, next_offset, &self.raw_data);
             packets.push(RawPacket {
                 tpacket3_hdr: tpacket3_hdr,
                 data: &self.raw_data[this_offset..next_offset],
