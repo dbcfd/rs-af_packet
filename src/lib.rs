@@ -473,6 +473,7 @@ fn get_tpacket3_hdr(data: &[u8]) -> Tpacket3Hdr {
 }
 
 //there is probably a better way to do this but for now this works and seems reasonably efficient
+//TODO: make this generic
 #[inline]
 fn u64_from_bytes(input: &[u8]) -> u64 {
     let mut u64_bytes = [0u8; 8];
