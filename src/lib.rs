@@ -384,10 +384,10 @@ impl Ring {
     }
 
     #[inline]
-    pub fn get_rx_statistics(&mut self) {
+    pub fn get_rx_statistics(&self) -> Result<[u8; 32], Error> {
         let mut optval: [u8; 32] = [0; 32];
-        let mut optlen: u32 = mem::size_of_val(&optval) as u32;
-        let _stats = unsafe {
+        let mut optlen = mem::size_of_val(&optval) as u32;
+        let stats = unsafe {
             getsockopt(
                 self.fd,
                 SOL_SOCKET,
@@ -396,7 +396,10 @@ impl Ring {
                 &mut optlen,
             )
         };
-        //TODO: parse and return struct or something
+        if stats > 0 {
+            return Err(io::Error::last_os_error())
+        }
+        Ok(optval)
     }
 
     #[inline]
