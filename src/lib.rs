@@ -429,7 +429,7 @@ impl Ring {
         }
 
         //TODO: clean up what we don't need here to save operations?
-        //TODO: deal with alignment here?
+        //TODO: deal with alignment here? should only matter for seq_num on 32-bit systems
         let blk = Block {
             block_desc: TpacketBlockDesc {
                 version: u32_from_bytes(&block[0..4]),
@@ -459,7 +459,6 @@ impl Ring {
 }
 
 #[inline]
-//TODO: these values appear incorrectly mapped or something
 fn get_tpacket3_hdr(data: &[u8]) -> Tpacket3Hdr {
     Tpacket3Hdr {
         tp_next_offset: u32_from_bytes(&data[0..4]),
