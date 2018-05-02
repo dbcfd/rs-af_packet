@@ -134,7 +134,7 @@ pub struct TpacketReq3 {
 pub struct TpacketBlockDesc {
     version: u32,
     offset_to_priv: u32,
-    hdr: TpacketBDHeader
+    hdr: TpacketBDHeader,
 }
 
 #[derive(Clone, Debug)]
@@ -145,15 +145,14 @@ pub struct TpacketBDHeader {
     blk_len: u32,
     seq_num: u64,
     ts_first_pkt: TpacketBDTS,
-    ts_last_pkt: TpacketBDTS
+    ts_last_pkt: TpacketBDTS,
 }
 
 #[derive(Clone, Debug)]
 pub struct TpacketBDTS {
     ts_sec: u32,
-    ts_nsec: u32
+    ts_nsec: u32,
 }
-
 
 #[derive(Clone, Debug)]
 pub struct Tpacket3Hdr {
@@ -177,7 +176,7 @@ pub struct Block<'a> {
 #[derive(Debug)]
 pub struct RawPacket<'a> {
     tpacket3_hdr: Tpacket3Hdr,
-    data: &'a [u8]
+    data: &'a [u8],
 }
 
 impl<'a> Block<'a> {
@@ -197,7 +196,6 @@ impl<'a> Block<'a> {
 
     #[inline]
     pub fn get_raw_packets(&self) -> Vec<RawPacket> {
-
         //standard block header is 48b
 
         let mut packets = Vec::<RawPacket>::new();
@@ -216,9 +214,9 @@ impl<'a> Block<'a> {
                 next_offset = self.raw_data.len();
                 tpacket3_hdr.tp_next_offset = 0;
             }
-            packets.push(RawPacket{
+            packets.push(RawPacket {
                 tpacket3_hdr: tpacket3_hdr,
-                data: &self.raw_data[this_offset..next_offset]
+                data: &self.raw_data[this_offset..next_offset],
             });
         }
 
@@ -273,7 +271,6 @@ impl Ring {
                 }
             }
         }
-
     }
 
     fn get_flags(&self) -> io::Result<IfReq> {
@@ -457,8 +454,8 @@ impl Ring {
                     ts_last_pkt: TpacketBDTS {
                         ts_sec: u32_from_bytes(&block[40..44]),
                         ts_nsec: u32_from_bytes(&block[44..48]),
-                    }
-                }
+                    },
+                },
             },
             packets: Vec::new(),
             raw_data: &mut block[..length],

@@ -9,7 +9,7 @@ fn main() {
 
     for _ in 0..num_cpus::get() {
         let interface = args[1].clone();
-        thread::spawn(move||{
+        thread::spawn(move || {
             let ring = af_packet::Ring::from_if_name(&interface).unwrap();
             loop {
                 let mut block = ring.get_block(); //THIS WILL BLOCK
