@@ -79,10 +79,10 @@ struct IfReq {
 
 #[derive(Clone, Debug)]
 #[repr(C)]
-pub struct TpacketStatsV3 {
-    pub tp_packets: u8,
-    pub tp_drops: u8,
-    pub tp_freeze_q_cnt: u8,
+struct TpacketStatsV3 {
+    tp_packets: u8,
+    tp_drops: u8,
+    tp_freeze_q_cnt: u8,
 }
 
 impl IfReq {
