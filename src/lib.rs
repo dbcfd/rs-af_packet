@@ -252,7 +252,7 @@ impl Ring {
             mmap: None,
             opts,
             packets: 0,
-            drops: 0
+            drops: 0,
         };
 
         ring.set_promisc()?;

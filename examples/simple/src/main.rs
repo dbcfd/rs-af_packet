@@ -12,7 +12,10 @@ fn main() {
         thread::spawn(move || {
             let mut ring = af_packet::Ring::from_if_name(&interface).unwrap();
             loop {
-                println!("Ring {} on {} has received {} packets and dropped {}", ring.fd, ring.if_name, ring.packets, ring.drops);
+                println!(
+                    "Ring {} on {} has received {} packets and dropped {}",
+                    ring.fd, ring.if_name, ring.packets, ring.drops
+                );
                 let mut block = ring.get_block(); //THIS WILL BLOCK
                 for _packet in block.get_raw_packets() {
                     //do something
