@@ -38,7 +38,7 @@ const SIOCSIFFLAGS: c_ulong = 35092; //0x00008914;
 const IFNAMESIZE: usize = 16;
 const IFREQUNIONSIZE: usize = 24;
 
-//const TP_FT_REQ_FILL_RXHASH: c_int = 0x1;
+const TP_FT_REQ_FILL_RXHASH: c_int = 0x1;
 
 const TP_BLK_STATUS_OFFSET: usize = 8;
 
@@ -115,11 +115,14 @@ impl Default for IfReq {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Ring {
-    if_name: String,
-    fd: c_int,
+    pub if_name: String,
+    pub fd: c_int,
     mmap: Option<*mut u8>,
     opts: TpacketReq3,
+    pub packets: u64,
+    pub drops: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -240,7 +243,7 @@ impl Ring {
             tp_frame_nr: 160000,
             tp_retire_blk_tov: 10,
             tp_sizeof_priv: 0,
-            tp_feature_req_word: 0 //TP_FT_REQ_FILL_RXHASH as c_int,
+            tp_feature_req_word: TP_FT_REQ_FILL_RXHASH,
         };
 
         let mut ring = Ring {
@@ -248,6 +251,8 @@ impl Ring {
             fd,
             mmap: None,
             opts,
+            packets: 0,
+            drops: 0
         };
 
         ring.set_promisc()?;
@@ -260,7 +265,7 @@ impl Ring {
     }
 
     #[inline]
-    pub fn get_block(&self) -> Block {
+    pub fn get_block(&mut self) -> Block {
         loop {
             self.wait_for_block();
             //check all blocks in memory space
@@ -280,14 +285,14 @@ impl Ring {
 
     fn set_flag(&mut self, flag: c_ulong) -> io::Result<()> {
         let flags = &self.get_flags()?.ifr_flags();
-        let new_flags = flags | flag as c_short; //CHANGED
+        let new_flags = flags | flag as c_short;
         let mut if_req = IfReq::with_if_name(&self.if_name)?;
         if_req.union.data = IfReqUnion::from_short(new_flags).data;
         self.ioctl(SIOCSIFFLAGS, if_req)?;
         Ok(())
     }
 
-    pub fn set_promisc(&mut self) -> io::Result<()> {
+    fn set_promisc(&mut self) -> io::Result<()> {
         self.set_flag(IFF_PROMISC as u64)
     }
 
@@ -392,7 +397,7 @@ impl Ring {
     }
 
     #[inline]
-    pub fn get_rx_statistics(&self) -> Result<TpacketStatsV3, Error> {
+    fn update_rx_statistics(&mut self) -> Result<(), Error> {
         let mut optval = TpacketStatsV3 {
             tp_packets: 0,
             tp_drops: 0,
@@ -411,7 +416,11 @@ impl Ring {
         if stats > 0 {
             return Err(io::Error::last_os_error());
         }
-        Ok(optval)
+
+        self.packets += optval.tp_packets as u64;
+        self.drops += optval.tp_drops as u64;
+
+        Ok(())
     }
 
     #[inline]
@@ -428,7 +437,7 @@ impl Ring {
     }
 
     #[inline]
-    pub fn get_single_block<'a>(&self, count: i32) -> Option<Block<'a>> {
+    fn get_single_block<'a>(&mut self, count: i32) -> Option<Block<'a>> {
         //TODO: clean up all this typecasting
         let offset = count as isize * self.opts.tp_block_size as isize;
         let block = unsafe {
@@ -468,6 +477,8 @@ impl Ring {
             packets: Vec::new(),
             raw_data: &mut block[..length],
         };
+
+        self.update_rx_statistics().unwrap();
 
         Some(blk)
     }
