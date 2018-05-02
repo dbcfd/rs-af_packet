@@ -10,7 +10,7 @@ use libc::{bind, c_char, c_int, c_short, c_ulong, c_void, getpid, getsockopt, if
            PROT_READ, PROT_WRITE, SOCK_RAW, SOL_PACKET, SOL_SOCKET};
 
 const ETH_P_ALL: u16 = 3;
-const ETH_P_IP: u16 = 0x0800;
+const ETH_P_IP: u16 = 2048; //0x0800;
 const ETH_ALEN: c_int = 6;
 
 //const PACKET_STATISTICS: c_int = 6;
@@ -35,10 +35,10 @@ const TP_STATUS_USER: u8 = 1;
 
 const TPACKET_V3: c_int = 2;
 
-const SIOCGIFFLAGS: c_ulong = 0x00008913;
-const SIOCSIFFLAGS: c_ulong = 0x00008914;
+const SIOCGIFFLAGS: c_ulong = 35091; //0x00008913;
+const SIOCSIFFLAGS: c_ulong = 35092; //0x00008914;
 
-const IFF_PROMISC: c_ulong = 1 << 8;
+const IFF_PROMISC: c_ulong = 256; //1 << 8;
 
 const IFNAMESIZE: usize = 16;
 const IFREQUNIONSIZE: usize = 24;
