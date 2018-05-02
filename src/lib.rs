@@ -472,29 +472,24 @@ fn get_tpacket3_hdr(data: &[u8]) -> Tpacket3Hdr {
     }
 }
 
+//there is probably a better way to do this but for now this works and seems reasonably efficient
 #[inline]
 fn u64_from_bytes(input: &[u8]) -> u64 {
     let mut u64_bytes = [0u8; 8];
-    for (&x, p) in input[0..8].iter().zip(u64_bytes.iter_mut()) {
-        *p = x;
-    }
+    u64_bytes.clone_from_slice(input);
     unsafe { mem::transmute(u64_bytes) }
 }
 
 #[inline]
 fn u32_from_bytes(input: &[u8]) -> u32 {
     let mut u32_bytes = [0u8; 4];
-    for (&x, p) in input[0..4].iter().zip(u32_bytes.iter_mut()) {
-        *p = x;
-    }
+    u32_bytes.clone_from_slice(input);
     unsafe { mem::transmute(u32_bytes) }
 }
 
 #[inline]
 fn u16_from_bytes(input: &[u8]) -> u16 {
     let mut u16_bytes = [0u8; 2];
-    for (&x, p) in input[0..2].iter().zip(u16_bytes.iter_mut()) {
-        *p = x;
-    }
+    u16_bytes.clone_from_slice(input);
     unsafe { mem::transmute(u16_bytes) }
 }
