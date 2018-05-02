@@ -4,7 +4,7 @@ use std::ffi::CString;
 use std::io::{self, Error, ErrorKind};
 use std::mem;
 
-use libc::{bind, c_char, c_int, c_short, c_ulong, c_void, getpid, getsockopt, if_nametoindex,
+use libc::{bind, c_char, c_int, c_short, c_uint, c_ulong, c_void, getpid, getsockopt, if_nametoindex,
            ioctl, mmap, poll, pollfd, setsockopt, sockaddr, sockaddr_ll, socket, socklen_t,
            AF_PACKET, ETH_ALEN, ETH_P_ALL, ETH_P_IP, IFF_PROMISC, MAP_LOCKED, MAP_NORESERVE,
            MAP_SHARED, PF_PACKET, POLLERR, POLLIN, PROT_READ, PROT_WRITE, SOCK_RAW, SOL_PACKET};
@@ -14,7 +14,7 @@ const PACKET_STATISTICS: c_int = 6;
 const PACKET_VERSION: c_int = 10;
 const PACKET_FANOUT: c_int = 18;
 
-//const PACKET_FANOUT_HASH: c_int = 0;
+//const PACKET_FANOUT_HASH: c_uint = 0;
 const PACKET_FANOUT_LB: c_int = 1;
 
 const PACKET_HOST: u8 = 0;
@@ -38,7 +38,7 @@ const SIOCSIFFLAGS: c_ulong = 35092; //0x00008914;
 const IFNAMESIZE: usize = 16;
 const IFREQUNIONSIZE: usize = 24;
 
-const TP_FT_REQ_FILL_RXHASH: c_int = 0x1;
+const TP_FT_REQ_FILL_RXHASH: c_uint = 0x1;
 
 const TP_BLK_STATUS_OFFSET: usize = 8;
 
@@ -80,9 +80,9 @@ struct IfReq {
 #[derive(Clone, Debug)]
 #[repr(C)]
 struct TpacketStatsV3 {
-    tp_packets: u8,
-    tp_drops: u8,
-    tp_freeze_q_cnt: u8,
+    tp_packets: c_uint,
+    tp_drops: c_uint,
+    tp_freeze_q_cnt: c_uint,
 }
 
 impl IfReq {
@@ -127,13 +127,13 @@ pub struct Ring {
 
 #[derive(Clone, Debug)]
 pub struct TpacketReq3 {
-    tp_block_size: c_int,
-    tp_block_nr: c_int,
-    tp_frame_size: c_int,
-    tp_frame_nr: c_int,
-    tp_retire_blk_tov: c_int,
-    tp_sizeof_priv: c_int,
-    tp_feature_req_word: c_int,
+    tp_block_size: c_uint,
+    tp_block_nr: c_uint,
+    tp_frame_size: c_uint,
+    tp_frame_nr: c_uint,
+    tp_retire_blk_tov: c_uint,
+    tp_sizeof_priv: c_uint,
+    tp_feature_req_word: c_uint,
 }
 
 #[derive(Clone, Debug)]
@@ -437,7 +437,7 @@ impl Ring {
     }
 
     #[inline]
-    fn get_single_block<'a>(&mut self, count: i32) -> Option<Block<'a>> {
+    fn get_single_block<'a>(&mut self, count: u32) -> Option<Block<'a>> {
         //TODO: clean up all this typecasting
         let offset = count as isize * self.opts.tp_block_size as isize;
         let block = unsafe {
