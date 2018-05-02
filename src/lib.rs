@@ -209,6 +209,7 @@ impl<'a> Block<'a> {
                 next_offset = self.raw_data.len();
                 tpacket3_hdr.tp_next_offset = 0;
             }
+            println!("{}, {}, {:?}", this_offset, next_offset, &self.raw_data);
             packets.push(RawPacket {
                 tpacket3_hdr: tpacket3_hdr,
                 data: &self.raw_data[this_offset..next_offset],
@@ -221,7 +222,8 @@ impl<'a> Block<'a> {
 
 impl Ring {
     pub fn from_if_name(if_name: &str) -> io::Result<Ring> {
-        let fd = unsafe { socket(PF_PACKET, SOCK_RAW, ETH_P_ALL.to_be() as i32) };
+        //this typecasting sucks :(
+        let fd = unsafe { socket(PF_PACKET, SOCK_RAW, (ETH_P_ALL as u16).to_be() as i32) };
         if fd < 0 {
             return Err(Error::last_os_error());
         }
