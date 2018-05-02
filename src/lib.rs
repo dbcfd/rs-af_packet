@@ -7,13 +7,13 @@ use std::mem;
 use libc::{bind, c_char, c_int, c_short, c_ulong, c_void, getpid, getsockopt, if_nametoindex,
            ioctl, mmap, poll, pollfd, setsockopt, sockaddr, sockaddr_ll, socket, socklen_t,
            AF_PACKET, ETH_ALEN, ETH_P_ALL, ETH_P_IP, IFF_PROMISC, MAP_LOCKED, MAP_NORESERVE,
-           MAP_SHARED, PF_PACKET, POLLERR, POLLIN, PROT_READ, PROT_WRITE, SOCK_RAW, SOL_PACKET,
-           SOL_SOCKET};
+           MAP_SHARED, PF_PACKET, POLLERR, POLLIN, PROT_READ, PROT_WRITE, SOCK_RAW, SOL_PACKET};
 
-//const PACKET_STATISTICS: c_int = 6;
 const PACKET_RX_RING: c_int = 5;
+const PACKET_STATISTICS: c_int = 6;
 const PACKET_VERSION: c_int = 10;
 const PACKET_FANOUT: c_int = 18;
+
 //const PACKET_FANOUT_HASH: c_int = 0;
 const PACKET_FANOUT_LB: c_int = 1;
 
@@ -75,6 +75,14 @@ impl IfReqUnion {
 struct IfReq {
     ifr_name: [c_char; IFNAMESIZE],
     union: IfReqUnion,
+}
+
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct TpacketStatsV3 {
+    tp_packets: u8,
+    tp_drops: u8,
+    tp_freeze_q_cnt: u8,
 }
 
 impl IfReq {
@@ -361,7 +369,7 @@ impl Ring {
         //TODO: see if there is another way to do this...
         let addr_ptr = unsafe { mem::transmute::<*mut sockaddr_ll, *mut sockaddr>(&mut sa) };
 
-        match unsafe { bind(self.fd, addr_ptr, size as u32) } {
+        match unsafe { bind(self.fd, addr_ptr, size as socklen_t) } {
             0 => Ok(()),
             _ => Err(io::Error::last_os_error()),
         }
@@ -375,7 +383,7 @@ impl Ring {
                 SOL_PACKET,
                 PACKET_FANOUT,
                 &fanout as *const _ as *const c_void,
-                mem::size_of_val(&fanout) as u32,
+                mem::size_of_val(&fanout) as socklen_t,
             )
         } {
             0 => Ok(()),
@@ -384,20 +392,24 @@ impl Ring {
     }
 
     #[inline]
-    pub fn get_rx_statistics(&self) -> Result<[u8; 32], Error> {
-        let mut optval: [u8; 32] = [0; 32];
-        let mut optlen = mem::size_of_val(&optval) as u32;
+    pub fn get_rx_statistics(&self) -> Result<TpacketStatsV3, Error> {
+        let mut optval = TpacketStatsV3 {
+            tp_packets: 0,
+            tp_drops: 0,
+            tp_freeze_q_cnt: 0,
+        };
+        let mut optlen = mem::size_of_val(&optval) as socklen_t;
         let stats = unsafe {
             getsockopt(
                 self.fd,
-                SOL_SOCKET,
-                PACKET_VERSION,
+                SOL_PACKET,
+                PACKET_STATISTICS,
                 &mut optval as *mut _ as *mut c_void,
                 &mut optlen,
             )
         };
         if stats > 0 {
-            return Err(io::Error::last_os_error())
+            return Err(io::Error::last_os_error());
         }
         Ok(optval)
     }
