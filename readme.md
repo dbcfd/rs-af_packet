@@ -10,7 +10,7 @@ This library is intended to provide an efficient, safe, and ergonomic way of rea
 
 The Linux kernel even provides flow balancing based on a hashed tuple so threads do not need to communicate with eachother to do flow reassembly
 
-```
+```rust
 extern crate af_packet;
 extern crate num_cpus;
 
