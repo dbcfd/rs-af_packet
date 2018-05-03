@@ -10,3 +10,4 @@ categories = ["os", "os::unix-apis", "network-programming", "development-tools::
 
 [dependencies]
 libc = "0.2"
+nom = {git = "https://github.com/Geal/nom/"}

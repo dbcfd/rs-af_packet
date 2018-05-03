@@ -1,4 +1,6 @@
 extern crate libc;
+#[macro_use]
+extern crate nom;
 
 use std::ffi::CString;
 use std::io::{self, Error, ErrorKind};
@@ -9,6 +11,8 @@ use libc::{bind, c_char, c_int, c_short, c_uint, c_ulong, c_void, getpid, getsoc
            socklen_t, AF_PACKET, ETH_ALEN, ETH_P_ALL, ETH_P_IP, IFF_PROMISC, MAP_LOCKED,
            MAP_NORESERVE, MAP_SHARED, PF_PACKET, POLLERR, POLLIN, PROT_READ, PROT_WRITE, SOCK_RAW,
            SOL_PACKET};
+
+use nom::{be_u16, be_u32, be_u64};
 
 //Used digits for these consts, if they were defined differently in C headers I have added that definition in the comments beside them
 
@@ -213,7 +217,7 @@ impl<'a> Block<'a> {
         let count = self.block_desc.hdr.num_pkts;
         for x in 0..count {
             let this_offset = next_offset;
-            let mut tpacket3_hdr = get_tpacket3_hdr(&self.raw_data[next_offset..]);
+            let mut tpacket3_hdr = get_tpacket3_hdr(&self.raw_data[next_offset..]).unwrap().1;
             if x < count - 1 {
                 next_offset = this_offset + tpacket3_hdr.tp_next_offset as usize;
             } else {
@@ -488,18 +492,19 @@ impl Ring {
 }
 
 #[inline]
-fn get_tpacket3_hdr(data: &[u8]) -> Tpacket3Hdr {
-    Tpacket3Hdr {
-        tp_next_offset: u32_from_bytes(&data[0..4]),
-        tp_sec: u32_from_bytes(&data[4..8]),
-        tp_nsec: u32_from_bytes(&data[8..12]),
-        tp_snaplen: u32_from_bytes(&data[12..16]),
-        tp_len: u32_from_bytes(&data[16..20]),
-        tp_status: u32_from_bytes(&data[20..24]),
-        tp_mac: u16_from_bytes(&data[24..26]),
-        tp_net: u16_from_bytes(&data[26..28]),
-    }
-}
+named!(get_tpacket3_hdr<Tpacket3Hdr>,
+    do_parse!(
+        tp_next_offset: be_u32 >>
+        tp_sec: be_u32 >>
+        tp_nsec: be_u32 >>
+        tp_snaplen: be_u32 >>
+        tp_len: be_u32 >>
+        tp_status: be_u32 >>
+        tp_mac: be_u16 >>
+        tp_net: be_u16 >>
+        (Tpacket3Hdr { tp_next_offset, tp_sec, tp_nsec, tp_snaplen, tp_len, tp_status, tp_mac, tp_net })
+    )
+);
 
 //there is probably a better way to do this but for now this works and seems reasonably efficient
 //TODO: make this generic
@@ -515,11 +520,4 @@ fn u32_from_bytes(input: &[u8]) -> u32 {
     let mut u32_bytes = [0u8; 4];
     u32_bytes.clone_from_slice(input);
     unsafe { mem::transmute(u32_bytes) }
-}
-
-#[inline]
-fn u16_from_bytes(input: &[u8]) -> u16 {
-    let mut u16_bytes = [0u8; 2];
-    u16_bytes.clone_from_slice(input);
-    unsafe { mem::transmute(u16_bytes) }
 }
