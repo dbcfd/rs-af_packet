@@ -1,6 +1,6 @@
 [package]
 name = "af_packet"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Nick Price <nick@spun.io>"]
 description = "AF_PACKET bindings for Rust, primarily to be used for high-performance network security applications."
 license = "GPL-3.0"

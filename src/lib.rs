@@ -122,6 +122,7 @@ impl Default for IfReq {
     }
 }
 
+///References a single mmaped ring buffer. Normally one per thread.
 #[derive(Clone, Debug)]
 pub struct Ring {
     pub if_name: String,
@@ -132,8 +133,9 @@ pub struct Ring {
     pub drops: u64,
 }
 
+#[repr(C)]
 #[derive(Clone, Debug)]
-pub struct TpacketReq3 {
+struct TpacketReq3 {
     tp_block_size: c_uint,
     tp_block_nr: c_uint,
     tp_frame_size: c_uint,
@@ -144,14 +146,14 @@ pub struct TpacketReq3 {
 }
 
 #[derive(Clone, Debug)]
-pub struct TpacketBlockDesc {
+struct TpacketBlockDesc {
     version: u32,
     offset_to_priv: u32,
     hdr: TpacketBDHeader,
 }
 
 #[derive(Clone, Debug)]
-pub struct TpacketBDHeader {
+struct TpacketBDHeader {
     block_status: u32,
     num_pkts: u32,
     offset_to_first_pkt: u32,
@@ -162,13 +164,13 @@ pub struct TpacketBDHeader {
 }
 
 #[derive(Clone, Debug)]
-pub struct TpacketBDTS {
+struct TpacketBDTS {
     ts_sec: u32,
     ts_nsec: u32,
 }
 
 #[derive(Clone, Debug)]
-pub struct Tpacket3Hdr {
+struct Tpacket3Hdr {
     tp_next_offset: u32,
     tp_sec: u32,
     tp_nsec: u32,
@@ -179,6 +181,7 @@ pub struct Tpacket3Hdr {
     tp_net: u16,
 }
 
+///Contains a reference to a block as it exists in the ring buffer, its block descriptor, and a Vec of individual packets in that block.
 #[derive(Debug)]
 pub struct Block<'a> {
     block_desc: TpacketBlockDesc,
@@ -186,6 +189,7 @@ pub struct Block<'a> {
     raw_data: &'a mut [u8],
 }
 
+///Contains a reference to an individual packet in a block, as well as details about that packet
 #[derive(Debug)]
 pub struct RawPacket<'a> {
     tpacket3_hdr: Tpacket3Hdr,
