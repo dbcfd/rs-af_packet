@@ -45,7 +45,7 @@ const SIOCSIFFLAGS: c_ulong = 35092; //0x00008914;
 const IFNAMESIZE: usize = 16;
 const IFREQUNIONSIZE: usize = 24;
 
-//const TP_FT_REQ_FILL_RXHASH: c_uint = 1; //0x1;
+const TP_FT_REQ_FILL_RXHASH: c_uint = 1; //0x1;
 
 const TP_BLK_STATUS_OFFSET: usize = 8;
 
@@ -264,7 +264,7 @@ impl Ring {
             tp_frame_nr: 160000,
             tp_retire_blk_tov: 10,
             tp_sizeof_priv: 0,
-            tp_feature_req_word: 0,
+            tp_feature_req_word: TP_FT_REQ_FILL_RXHASH,
         };
 
         let mut ring = Ring {
