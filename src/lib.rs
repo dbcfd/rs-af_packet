@@ -125,11 +125,15 @@ impl Default for IfReq {
 ///References a single mmaped ring buffer. Normally one per thread.
 #[derive(Clone, Debug)]
 pub struct Ring {
+    ///Interface Name
     pub if_name: String,
+    ///File descriptor
     pub fd: c_int,
     mmap: Option<*mut u8>,
     opts: TpacketReq3,
+    ///Number of packets received
     pub packets: u64,
+    ///Number of packets dropped
     pub drops: u64,
 }
 
@@ -169,16 +173,17 @@ struct TpacketBDTS {
     ts_nsec: u32,
 }
 
+///Contains details about individual packets in a block
 #[derive(Clone, Debug)]
-struct Tpacket3Hdr {
+pub struct Tpacket3Hdr {
     tp_next_offset: u32,
-    tp_sec: u32,
-    tp_nsec: u32,
-    tp_snaplen: u32,
-    tp_len: u32,
-    tp_status: u32,
-    tp_mac: u16,
-    tp_net: u16,
+    pub tp_sec: u32,
+    pub tp_nsec: u32,
+    pub tp_snaplen: u32,
+    pub tp_len: u32,
+    pub tp_status: u32,
+    pub tp_mac: u16,
+    pub tp_net: u16,
 }
 
 ///Contains a reference to a block as it exists in the ring buffer, its block descriptor, and a Vec of individual packets in that block.
@@ -192,11 +197,14 @@ pub struct Block<'a> {
 ///Contains a reference to an individual packet in a block, as well as details about that packet
 #[derive(Debug)]
 pub struct RawPacket<'a> {
-    tpacket3_hdr: Tpacket3Hdr,
-    data: &'a [u8],
+    ///Contains packet details
+    pub tpacket3_hdr: Tpacket3Hdr,
+    ///Raw packet data including any encapsulations
+    pub data: &'a [u8],
 }
 
 impl<'a> Block<'a> {
+    ///Marks a block as free to be destroyed by the kernel
     #[inline]
     pub fn mark_as_consumed(&mut self) {
         //32 bits but doesn't seem like we need to zero more than one byte (perhaps only one bit even)
@@ -207,10 +215,11 @@ impl<'a> Block<'a> {
     }
 
     #[inline]
-    pub fn is_ready(&self) -> bool {
+    fn is_ready(&self) -> bool {
         (self.raw_data[TP_BLK_STATUS_OFFSET] & TP_STATUS_USER) != 0
     }
 
+    ///Returns a `Vec` of details and references to raw packets that can be read from the ring buffer
     #[inline]
     pub fn get_raw_packets(&self) -> Vec<RawPacket> {
         //standard block header is 48b
@@ -239,6 +248,7 @@ impl<'a> Block<'a> {
 }
 
 impl Ring {
+    ///Creates a new ring buffer on the specified interface name and puts the interface into promiscuous mode
     pub fn from_if_name(if_name: &str) -> io::Result<Ring> {
         //this typecasting sucks :(
         let fd = unsafe { socket(PF_PACKET, SOCK_RAW, (ETH_P_ALL as u16).to_be() as i32) };
@@ -275,6 +285,7 @@ impl Ring {
         Ok(ring)
     }
 
+    ///Waits for a block to be added to the ring buffer and returns it
     #[inline]
     pub fn get_block(&mut self) -> Block {
         loop {
