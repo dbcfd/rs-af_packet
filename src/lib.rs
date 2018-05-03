@@ -12,7 +12,7 @@ use libc::{bind, c_char, c_int, c_short, c_uint, c_ulong, c_void, getpid, getsoc
            MAP_NORESERVE, MAP_SHARED, PF_PACKET, POLLERR, POLLIN, PROT_READ, PROT_WRITE, SOCK_RAW,
            SOL_PACKET};
 
-use nom::{be_u16, be_u32, be_u64};
+use nom::{le_u16, le_u32, le_u64};
 
 //Used digits for these consts, if they were defined differently in C headers I have added that definition in the comments beside them
 
@@ -454,35 +454,10 @@ impl Ring {
             )
         };
 
-        let length = u32_from_bytes(&block[20..24]) as usize; //length of whole block including header
-        if length == 0 {
-            return None;
-        }
-
-        //TODO: clean up what we don't need here to save operations?
-        //TODO: deal with alignment here? should only matter for seq_num on 32-bit systems
         let blk = Block {
-            block_desc: TpacketBlockDesc {
-                version: u32_from_bytes(&block[0..4]),
-                offset_to_priv: u32_from_bytes(&block[4..8]),
-                hdr: TpacketBDHeader {
-                    block_status: u32_from_bytes(&block[8..12]),
-                    num_pkts: u32_from_bytes(&block[12..16]),
-                    offset_to_first_pkt: u32_from_bytes(&block[16..20]),
-                    blk_len: length as u32,
-                    seq_num: u64_from_bytes(&block[24..32]),
-                    ts_first_pkt: TpacketBDTS {
-                        ts_sec: u32_from_bytes(&block[32..36]),
-                        ts_nsec: u32_from_bytes(&block[36..40]),
-                    },
-                    ts_last_pkt: TpacketBDTS {
-                        ts_sec: u32_from_bytes(&block[40..44]),
-                        ts_nsec: u32_from_bytes(&block[44..48]),
-                    },
-                },
-            },
+            block_desc: get_tpacket_block_desc(&block[..]).unwrap().1,
             packets: Vec::new(),
-            raw_data: &mut block[..length],
+            raw_data: &mut block[..],
         };
 
         self.update_rx_statistics().unwrap();
@@ -492,32 +467,49 @@ impl Ring {
 }
 
 #[inline]
-named!(get_tpacket3_hdr<Tpacket3Hdr>,
+named!(get_tpacket_block_desc<TpacketBlockDesc>,
     do_parse!(
-        tp_next_offset: be_u32 >>
-        tp_sec: be_u32 >>
-        tp_nsec: be_u32 >>
-        tp_snaplen: be_u32 >>
-        tp_len: be_u32 >>
-        tp_status: be_u32 >>
-        tp_mac: be_u16 >>
-        tp_net: be_u16 >>
-        (Tpacket3Hdr { tp_next_offset, tp_sec, tp_nsec, tp_snaplen, tp_len, tp_status, tp_mac, tp_net })
+        version: le_u32 >>
+        offset_to_priv: le_u32 >>
+        hdr: get_tpacket_bd_header >>
+        (TpacketBlockDesc{version, offset_to_priv, hdr})
     )
 );
 
-//there is probably a better way to do this but for now this works and seems reasonably efficient
-//TODO: make this generic
 #[inline]
-fn u64_from_bytes(input: &[u8]) -> u64 {
-    let mut u64_bytes = [0u8; 8];
-    u64_bytes.clone_from_slice(input);
-    unsafe { mem::transmute(u64_bytes) }
-}
+named!(get_tpacket_bd_header<TpacketBDHeader>,
+    do_parse!(
+        block_status: le_u32 >>
+        num_pkts: le_u32 >>
+        offset_to_first_pkt: le_u32 >>
+        blk_len: le_u32 >>
+        seq_num: le_u64 >>
+        ts_first_pkt: get_tpacket_bdts >>
+        ts_last_pkt: get_tpacket_bdts >>
+        (TpacketBDHeader {block_status, num_pkts, offset_to_first_pkt, blk_len, seq_num, ts_first_pkt, ts_last_pkt})
+    )
+);
 
 #[inline]
-fn u32_from_bytes(input: &[u8]) -> u32 {
-    let mut u32_bytes = [0u8; 4];
-    u32_bytes.clone_from_slice(input);
-    unsafe { mem::transmute(u32_bytes) }
-}
+named!(get_tpacket_bdts<TpacketBDTS>,
+    do_parse!(
+        ts_sec: le_u32 >>
+        ts_nsec: le_u32 >>
+        (TpacketBDTS{ ts_sec,ts_nsec})
+    )
+);
+
+#[inline]
+named!(get_tpacket3_hdr<Tpacket3Hdr>,
+    do_parse!(
+        tp_next_offset: le_u32 >>
+        tp_sec: le_u32 >>
+        tp_nsec: le_u32 >>
+        tp_snaplen: le_u32 >>
+        tp_len: le_u32 >>
+        tp_status: le_u32 >>
+        tp_mac: le_u16 >>
+        tp_net: le_u16 >>
+        (Tpacket3Hdr { tp_next_offset, tp_sec, tp_nsec, tp_snaplen, tp_len, tp_status, tp_mac, tp_net })
+    )
+);
