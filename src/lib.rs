@@ -21,8 +21,8 @@ const PACKET_STATISTICS: c_int = 6;
 const PACKET_VERSION: c_int = 10;
 const PACKET_FANOUT: c_int = 18;
 
-//const PACKET_FANOUT_HASH: c_uint = 0;
-const PACKET_FANOUT_LB: c_int = 1;
+const PACKET_FANOUT_HASH: c_int = 0;
+//const PACKET_FANOUT_LB: c_int = 1;
 
 const PACKET_HOST: u8 = 0;
 const PACKET_BROADCAST: u8 = 1;
@@ -45,7 +45,7 @@ const SIOCSIFFLAGS: c_ulong = 35092; //0x00008914;
 const IFNAMESIZE: usize = 16;
 const IFREQUNIONSIZE: usize = 24;
 
-const TP_FT_REQ_FILL_RXHASH: c_uint = 1; //0x1;
+//const TP_FT_REQ_FILL_RXHASH: c_uint = 1; //0x1;
 
 const TP_BLK_STATUS_OFFSET: usize = 8;
 
@@ -250,7 +250,7 @@ impl Ring {
             tp_frame_nr: 160000,
             tp_retire_blk_tov: 10,
             tp_sizeof_priv: 0,
-            tp_feature_req_word: TP_FT_REQ_FILL_RXHASH,
+            tp_feature_req_word: 0,
         };
 
         let mut ring = Ring {
@@ -388,7 +388,7 @@ impl Ring {
     }
 
     fn set_fanout(&mut self) -> io::Result<()> {
-        let fanout = (unsafe { getpid() } & 0xFFFF) | (PACKET_FANOUT_LB << 16);
+        let fanout = (unsafe { getpid() } & 0xFFFF) | (PACKET_FANOUT_HASH << 16);
         match unsafe {
             setsockopt(
                 self.fd,
