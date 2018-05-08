@@ -8,7 +8,7 @@ This library is intended to provide an efficient, safe, and ergonomic way of rea
 
 ## A multi-threaded raw receiver in ~30 lines of code
 
-The Linux kernel provides flow balancing based on a hashed tuple so threads do not need to communicate with each other to do flow reassembly. This behavior is, however, configurable.
+The Linux kernel provides flow balancing based on a hashed tuple so threads do not need to communicate with each other to do flow reassembly. This behavior is, however, configurable.  A full multithreaded DNS sniffer in ~50 lines of code can be seen at (https://github.com/DominoTree/rs-dns-sniffer/blob/master/src/main.rs)
 
 ```rust
 extern crate af_packet;
