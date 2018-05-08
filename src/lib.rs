@@ -21,8 +21,8 @@ const PACKET_STATISTICS: c_int = 6;
 const PACKET_VERSION: c_int = 10;
 const PACKET_FANOUT: c_int = 18;
 
-const PACKET_FANOUT_HASH: c_int = 0;
-//const PACKET_FANOUT_LB: c_int = 1;
+pub const PACKET_FANOUT_HASH: c_int = 0;
+pub const PACKET_FANOUT_LB: c_int = 1;
 
 const PACKET_HOST: u8 = 0;
 const PACKET_BROADCAST: u8 = 1;
@@ -48,6 +48,28 @@ const IFREQUNIONSIZE: usize = 24;
 const TP_FT_REQ_FILL_RXHASH: c_uint = 1; //0x1;
 
 const TP_BLK_STATUS_OFFSET: usize = 8;
+
+#[derive(Clone, Debug)]
+///Settings to be used to bring up each ring
+pub struct RingSettings {
+    ///Interface name
+    pub if_name: String,
+    ///PACKET_FANOUT_HASH will pin flows to individual threads, PACKET_FANOUT_LB will distribute
+    ///them across multiple threads
+    pub fanout_method: c_int,
+    ///Lower-level settings including block size, also enable/disable filling RXHASH in packet data
+    pub ring_settings: TpacketReq3,
+}
+
+impl Default for RingSettings {
+    fn default() -> RingSettings {
+        RingSettings {
+            if_name: String::from("eth0"),
+            fanout_method: PACKET_FANOUT_HASH,
+            ring_settings: TpacketReq3::default()
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 #[repr(C)]
@@ -139,14 +161,37 @@ pub struct Ring {
 
 #[repr(C)]
 #[derive(Clone, Debug)]
-struct TpacketReq3 {
-    tp_block_size: c_uint,
-    tp_block_nr: c_uint,
-    tp_frame_size: c_uint,
-    tp_frame_nr: c_uint,
-    tp_retire_blk_tov: c_uint,
-    tp_sizeof_priv: c_uint,
-    tp_feature_req_word: c_uint,
+///Lower-level settings about ring buffer allocation and behavior
+///tp_frame_size * tp_frame_nr must equal tp_block_size * tp_block_nr
+pub struct TpacketReq3 {
+    ///Block size of ring
+    pub tp_block_size: c_uint,
+    ///Number of blocks allocated for ring
+    pub tp_block_nr: c_uint,
+    ///Frame size of ring
+    pub tp_frame_size: c_uint,
+    ///Number of frames in ring
+    pub tp_frame_nr: c_uint,
+    ///Timeout in milliseconds
+    pub tp_retire_blk_tov: c_uint,
+    ///Offset to private data area
+    pub tp_sizeof_priv: c_uint,
+    ///Controls whether RXHASH is filled - 0 for false, 1 for true
+    pub tp_feature_req_word: c_uint,
+}
+
+impl Default for TpacketReq3 {
+    fn default() -> TpacketReq3 {
+        TpacketReq3 {
+            tp_block_size: 32768,
+            tp_block_nr: 10000,
+            tp_frame_size: 2048,
+            tp_frame_nr: 160000,
+            tp_retire_blk_tov: 100,
+            tp_sizeof_priv: 0,
+            tp_feature_req_word: TP_FT_REQ_FILL_RXHASH,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -256,22 +301,11 @@ impl Ring {
             return Err(Error::last_os_error());
         }
 
-        //TODO these values are stupid and should be changed
-        let opts = TpacketReq3 {
-            tp_block_size: 32768,
-            tp_block_nr: 10000,
-            tp_frame_size: 2048,
-            tp_frame_nr: 160000,
-            tp_retire_blk_tov: 10,
-            tp_sizeof_priv: 0,
-            tp_feature_req_word: TP_FT_REQ_FILL_RXHASH,
-        };
-
         let mut ring = Ring {
             if_name: String::from(if_name),
             fd,
             mmap: None,
-            opts,
+            opts: TpacketReq3::default(),
             packets: 0,
             drops: 0,
         };
@@ -281,7 +315,33 @@ impl Ring {
         ring.get_rx_ring()?;
         ring.mmap_rx_ring()?;
         ring.bind_rx_ring()?;
-        ring.set_fanout()?;
+        ring.set_fanout(PACKET_FANOUT_HASH)?;
+        Ok(ring)
+    }
+
+    ///Creates a new ring buffer from the supplied RingSettings struct
+    pub fn new(settings: RingSettings) -> io::Result<Ring> {
+        //this typecasting sucks :(
+        let fd = unsafe { socket(PF_PACKET, SOCK_RAW, (ETH_P_ALL as u16).to_be() as i32) };
+        if fd < 0 {
+            return Err(Error::last_os_error());
+        }
+
+        let mut ring = Ring {
+            if_name: settings.if_name,
+            fd,
+            mmap: None,
+            opts: settings.ring_settings,
+            packets: 0,
+            drops: 0,
+        };
+
+        ring.set_promisc()?;
+        ring.set_tpacket_v3()?;
+        ring.get_rx_ring()?;
+        ring.mmap_rx_ring()?;
+        ring.bind_rx_ring()?;
+        ring.set_fanout(settings.fanout_method)?;
         Ok(ring)
     }
 
@@ -402,8 +462,8 @@ impl Ring {
         }
     }
 
-    fn set_fanout(&mut self) -> io::Result<()> {
-        let fanout = (unsafe { getpid() } & 0xFFFF) | (PACKET_FANOUT_HASH << 16);
+    fn set_fanout(&mut self, method: c_int) -> io::Result<()> {
+        let fanout = (unsafe { getpid() } & 0xFFFF) | (method << 16);
         match unsafe {
             setsockopt(
                 self.fd,
