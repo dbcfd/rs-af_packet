@@ -25,6 +25,6 @@ fn main() {
         });
     }
     loop {
-        thread::sleep_ms(1000);
+        thread::sleep(std::time::Duration::from_secs(1));
     }
 }
