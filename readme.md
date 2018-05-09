@@ -1,4 +1,4 @@
-# AF_PACKET bindings for Rust
+# High-Performance AF_PACKET bindings for Rust
 
 [![Crates.io](https://img.shields.io/crates/v/af_packet.svg)](https://crates.io/crates/af_packet)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -8,7 +8,7 @@ This library is intended to provide an efficient, safe, and ergonomic way of rea
 
 ## A multi-threaded raw receiver in ~30 lines of code
 
-The Linux kernel provides flow balancing based on a hashed tuple so threads do not need to communicate with each other to do flow reassembly. This behavior is, however, configurable.  A full multithreaded DNS sniffer in ~50 lines of code can be seen at (https://github.com/DominoTree/rs-dns-sniffer/blob/master/src/main.rs)
+The Linux kernel provides flow balancing based on a hashed tuple so threads do not need to communicate with each other to do flow reassembly. This behavior is, however, configurable.  A full multithreaded DNS sniffer in ~50 lines of code can be seen at (https://github.com/DominoTree/rs-dns-sniffer/blob/master/src/main.rs). It can decode over 120,000 DNS messages per second on an eight-core machine without dropping any frames.
 
 ```rust
 extern crate af_packet;
